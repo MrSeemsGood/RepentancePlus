@@ -56,6 +56,7 @@
 	</Pool>
 	<Pool Name="curse">
 		<Item Name="Cookie Cutter" Weight="1" DecreaseBy="1" RemoveOn="0.1" />
+		<Item Name="A Cat in a Box" Weight="1" DecreaseBy="1" RemoveOn="0.1"/>
 		<Item Name="The Mark of Cain" Weight="0.5" DecreaseBy="0.5" RemoveOn="0.05" />
 		<Item Name="Black Doll" Weight="1" DecreaseBy="1" RemoveOn="0.1" />
 	</Pool>
