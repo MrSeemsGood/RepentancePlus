@@ -83,6 +83,7 @@ Collectibles = {
 	TOWEROFBABEL = Isaac.GetItemIdByName("Tower of Babel"),
 	BLESSOTDEAD = Isaac.GetItemIdByName("Bless of the Dead"),
 	TOYTANKS = Isaac.GetItemIdByName("Tank Boys")
+	CAT = Isaac.GetItemIdByName("Cat in A Box")
 }
 
 Trinkets = {
@@ -2292,12 +2293,40 @@ function rplus:usePill(pillEffect, Player, _)
 end
 rplus:AddCallback(ModCallbacks.MC_USE_PILL, rplus.usePill)
 
+
+local TimerDone = false --look idk where to pu this so, so Ill put it here rn
+rplus:AddCallback(ModCallbacks.MC_POST_UPDATE, function() --Timer Func to heal after 3 sec
+    if Timer ~= 0 then
+        Timer = Timer - 1
+    elseif Timer == 0 and TimerDone == false then
+        for _, entity in pairs(Isaac.GetRoomEntities()) do --This is probably going to offend someone, but I just can't.
+            if entity:IsVulnerableEnemy() and entity:IsActiveEnemy() and not entity:IsDead() and not entity:IsBoss() then
+                entity:AddHealth(entity.MaxHitPoints)
+            end
+        end
+        TimerDone = true
+    end
+end)
+
+rplus:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, function()
+    TimerDone = false
+    Timer = 60
+    if Player:HasCollectible(Collectibles.CAT) then
+        for _, entity in pairs(Isaac.GetRoomEntities()) do
+            if entity:IsVulnerableEnemy() and entity:IsActiveEnemy() and not entity:IsBoss() and not entity:IsDead() then
+                entity:TakeDamage(math.ceil(entity.MaxHitPoints / 2), 1, EntityRef(Player), 0)
+            end
+        end
+    end
+end)
+
 								-----------------------------------------
 								--- EXTERNAL ITEM DESCRIPTIONS COMPAT ---
 								-----------------------------------------
 								
 if EID then
-	-- Enlish EID
+	-- English EID
+	EID:addCollectible(Collectibles.CAT, "{{ArrowUp}} During the first 3 seconds of entering a room, enemies have half health # After those two seconds, all alive enemy's are put at max health # No bosses or even Mini-Bosses")
 	EID:addCollectible(Collectibles.ORDLIFE, "{{ArrowUp}} Tears up #Spawns an additional Mom/Dad related item in Treasure rooms alongside the presented items; only one item can be taken")	
 	EID:addCollectible(Collectibles.COOKIECUTTER, "Gives you one {{Heart}} heart container and one broken heart #{{Warning}} Having 12 broken hearts kills you!")
 	EID:addCollectible(Collectibles.SINNERSHEART, "{{ArrowUp}} Damage +2 then x1.5 #{{ArrowDown}} Shot speed down #Homing tears")
