@@ -41,6 +41,7 @@
 	
 	<!-- T. Lazarus -->
 	<passive name="DNA Redactor" description="It runs in your genes" gfx="20_dnaredactor.png" quality="3" /> 
+	<passive name="Cat in A Box" description="Death... and Alive!?" gfx="CatInBox.png" quality="3" />
 	
 	<!-- T. Azazel -->
 	<trinket name="Angel's Crown" description="Patience is a virtue" gfx="t07_angelscrown.png" />
