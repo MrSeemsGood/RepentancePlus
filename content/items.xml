@@ -72,5 +72,6 @@
 	
 	<!-- T. Jacob -->
 	<active name="Cheese Grater" description="A pound of... cheese?" gfx="22_cheesegrater.png" quality="2" maxcharges="0" cache="damage" />
+	<passive name="Sibling Rivalry" description="Bound by blood" gfx="26_siblingrivalry.png" quality="4" />
 	<familiar name="Tank Boys" description="You and what army?.." gfx="55_tankboys.png" quality="3" />
 </items>
