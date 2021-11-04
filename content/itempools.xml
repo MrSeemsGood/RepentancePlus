@@ -40,6 +40,7 @@
 		<Item Name="Red Map" Weight="1" DecreaseBy="1" RemoveOn="0.1" />
 		<Item Name="DNA Redactor" Weight="1" DecreaseBy="1" RemoveOn="0.1" />
 		<Item Name="Bless of the Dead" Weight="1" DecreaseBy="1" RemoveOn="0.1" />
+		<Item Name="Sibling Rivalry" Weight="1" DecreaseBy="1" RemoveOn="0.1" />
 	</Pool>
 	<Pool Name="library">
 		
