@@ -87,7 +87,8 @@ Collectibles = {
 	BLESSOTDEAD = Isaac.GetItemIdByName("Bless of the Dead"),
 	TOYTANKS = Isaac.GetItemIdByName("Tank Boys"),
 	GUSTYBLOOD = Isaac.GetItemIdByName("Gusty Blood"),
-	REDBOMBER = Isaac.GetItemIdByName("Red Bomber")
+	REDBOMBER = Isaac.GetItemIdByName("Red Bomber"),
+	SIBLING = Isaac.GetItemIdByName("Sibling Rivalry")
 }
 
 Trinkets = {
@@ -603,7 +604,8 @@ function rplus:OnGameStart(Continued)
 				GUSTYBLOOD = {CurrentTears = 0, CurrentSpeed = 0},
 				REDBOMBER = {BombLaunchCooldown = 0, HasItem = false},
 				SINNERSHEART = {HasItem = false},
-				MAGICPEN = {CreepSpewCooldown = nil}
+				MAGICPEN = {CreepSpewCooldown = nil},
+				SIBLING = {Esau = false}
 			},
 			Cards = {
 				JACK = nil,
@@ -1204,7 +1206,24 @@ function rplus:PostPlayerUpdate(Player)
 		Player:AddCacheFlags(CacheFlag.CACHE_FIREDELAY) 
 		Player:EvaluateItems() 
 	end
-	
+	if Player:HasCollectible(Collectibles.SIBLING) then 	
+		if CustomData and CustomData.Items.SIBLING.Esau == false then
+			CustomData.Items.SIBLING.Esau = true
+			local ptype = 20 
+			local player = Isaac.GetPlayer()
+			Isaac.ExecuteCommand('addplayer ' .. ptype) -- spawn esau
+			local Clone = Isaac.GetPlayer(game:GetNumPlayers()-1)
+			Clone.Parent = player
+			game:GetHUD():AssignPlayerHUDs()
+			local rndmitem 
+			local itemlist=player:GetCollectibleCount() 
+			for i = 1, itemlist do -- give esau random passive item for every item player has
+				repeat rndmitem = GetUnlockedVanillaCollectible()
+				until  Isaac.GetItemConfig():GetCollectible(rndmitem).Type== ItemType.ITEM_PASSIVE and rndmitem ~= 619 -- esau can't get birthright(ID 619) because it crashes the game
+				Clone:AddCollectible(rndmitem,0,false) -- give esau random passive item		
+			end 
+		end
+	end
 	if Player:HasCollectible(Collectibles.REDBOMBER) then
 		if Input.IsActionTriggered(ButtonAction.ACTION_BOMB, Player.ControllerIndex) 
 		and CustomData.Items.REDBOMBER.BombLaunchCooldown <= 0 then
