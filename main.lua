@@ -104,7 +104,8 @@ Collectibles = {
 	BLESSOTDEAD = Isaac.GetItemIdByName("Bless of the Dead"),
 	TOYTANKS = Isaac.GetItemIdByName("Tank Boys"),
 	GUSTYBLOOD = Isaac.GetItemIdByName("Gusty Blood"),
-	REDBOMBER = Isaac.GetItemIdByName("Red Bomber")
+	REDBOMBER = Isaac.GetItemIdByName("Red Bomber"),
+	BOOKOFGENESIS = Isaac.GetItemIdByName("Book of Genesis")
 }
 
 Trinkets = {
@@ -627,7 +628,8 @@ function rplus:OnGameStart(Continued)
 				BLESSOTDEAD = 0,
 				GUSTYBLOOD = {CurrentTears = 0, CurrentSpeed = 0},
 				REDBOMBER = {BombLaunchCooldown = 0},
-				MAGICPEN = {CreepSpewCooldown = nil}
+				MAGICPEN = {CreepSpewCooldown = nil},
+				BOOKOFGENESIS = {Index = 0}
 			},
 			Cards = {
 				JACK = nil,
@@ -923,6 +925,31 @@ function rplus:OnItemUse(ItemUsed, _, Player, _, _, _)
 		end
 		return {Discharge = true, Remove = false, ShowAnim = true}
 	end
+	if ItemUsed == Collectibles.BOOKOFGENESIS then 
+		local freezePreventChecker = 0
+		CustomData.Items.BOOKOFGENESIS.Index = CustomData.Items.BOOKOFGENESIS.Index + 1
+		local MaxItemId = Isaac.GetItemConfig():GetCollectibles().Size - 1
+		repeat
+		ID = math.random(MaxItemId)
+		freezePreventChecker = freezePreventChecker + 1
+		until player:HasCollectible(ID, true)
+		and Isaac.GetItemConfig():GetCollectible(ID).Tags & ItemConfig.TAG_QUEST ~= ItemConfig.TAG_QUEST
+		and Isaac.GetItemConfig():GetCollectible(ID).Type % 3 == 1
+		or freezePreventChecker == 10000
+		if freezePreventChecker < 10000 then
+			player:RemoveCollectible(ID, true, -1, true)
+		else 
+			return true
+		end
+		local Q = Isaac.GetItemConfig():GetCollectible(ID).Quality		
+		for i=1,3 do
+			repeat newID = GetUnlockedVanillaCollectible(true)
+			until Isaac.GetItemConfig():GetCollectible(newID).Type % 3 == 1 and Isaac.GetItemConfig():GetCollectible(newID).Quality == Q
+        	local item = Isaac.Spawn(5, 100, newID, game:GetRoom():FindFreePickupSpawnPosition(Player.Position, 0, true, false), Vector.Zero, nil)
+        	item:ToPickup().OptionsPickupIndex = CustomData.Items.BOOKOFGENESIS.Index
+        end
+        sfx:Play(SoundEffect.SOUND_DEATH_CARD, 1, 2, false, 1, 0)
+    end 
 end
 rplus:AddCallback(ModCallbacks.MC_USE_ITEM, rplus.OnItemUse)
 
