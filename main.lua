@@ -129,7 +129,8 @@ Collectibles = {
 		Isaac.GetItemIdByName("Full Blood Vessel"),
 		Isaac.GetItemIdByName("Overflowing Blood Vessel") 
 	},
-	SIBLINGRIVALRY = Isaac.GetItemIdByName("Sibling Rivalry")
+	SIBLINGRIVALRY = Isaac.GetItemIdByName("Sibling Rivalry"),
+	REDKING = Isaac.GetItemIdByName("Red King")
 }
 
 Trinkets = {
@@ -412,7 +413,24 @@ ItemPools = {
 		638  -- yuck heart
 	}
 }
-
+REDKINGBOSSPOOL = {
+	43, -- monstro ii or gish
+	263, -- the gate
+	264, -- mega fatty
+	265, -- the cage 
+	68, -- peep or bloat 
+	268, -- the adversary
+	69, -- loki or lokii
+	64, -- pestilence
+	65, -- war or conquest
+	101, -- daddy long legs or triachnid 
+	401, -- the stain
+	900, -- reap creep
+	920, -- the horny boys
+	909 -- the scourge
+	915, -- singe
+	916 -- bumbino
+}
 StatUps = {
 	SINNERSHEART_DMG_MUL = 1.5,
 	SINNERSHEART_DMG_ADD = 2,
@@ -896,7 +914,8 @@ function rplus:OnGameStart(Continued)
 				BOOKOFGENESIS = {Index = 5},
 				MOTHERSLOVE = {NumDamage = 0, NumLuck = 0, NumRange = 0, NumTears = 0, NumSpeed = 0},
 				BLOODVESSEL = {DamageFlag = false},
-				NERVEPINCH = {Hold = 300, NumTriggers = 0}
+				NERVEPINCH = {Hold = 300, NumTriggers = 0},
+				REDKING = {Data = true}
 			},
 			Cards = {
 				JACK = nil,
@@ -972,7 +991,7 @@ function rplus:OnNewLevel()
 				player:AddCacheFlags(CacheFlag.CACHE_DAMAGE)
 				player:EvaluateItems()
 			end
-			
+			CustomData.Items.REDKING.Data = true
 			CustomData.Items.CEILINGSTARS.SleptInBed = false
 			
 			if player:HasCollectible(Collectibles.BAGOTRASH) then
@@ -1155,7 +1174,7 @@ function rplus:OnNewRoom()
 		player:GetData()['usedLoadedDice'] = false
 		player:AddCacheFlags(CacheFlag.CACHE_LUCK)
 		player:EvaluateItems()
-		
+		player:GetData()['RedKingItem'] = false
 		if player:HasCollectible(Collectibles.TOYTANKS) then
 			tankData[Familiars.TOYTANK1].newRoomCurrHold = game:GetFrameCount()
 			tankData[Familiars.TOYTANK2].newRoomCurrHold = game:GetFrameCount()
@@ -1220,6 +1239,19 @@ function rplus:OnNewRoom()
 			player:AddCacheFlags(CacheFlag.CACHE_DAMAGE)
 			player:EvaluateItems()
 		end
+		if player:GetData()['SpawnBoss'] then 
+			for _, entity in pairs(Isaac.GetRoomEntities()) do  
+				if entity.Type == 5 or entity.Type == 6 or entity.Type == 1000 then 
+					entity:Remove()    -- remove unnecessary things
+				end
+			end 
+			redkingboss = Isaac.Spawn(REDKINGBOSSPOOL[math.random(#REDKINGBOSSPOOL)], math.random(0, 1), 0, Vector(320, 320), Vector.Zero, nil)
+			if redkingboss.MaxHitPoints>=200+50*game:GetLevel():GetStage() then 
+				redkingboss:TakeDamage(redkingboss.MaxHitPoints-(250+50*game:GetLevel():GetStage()), 1, EntityRef(Player), 0)
+			end 
+			player:GetData()['SpawnBoss']=false
+			player:GetData()['RedKingItem']=true
+		end 
 	end
 	
 	if room:GetType() == RoomType.ROOM_LIBRARY and
@@ -1253,7 +1285,11 @@ function rplus:OnFrame()
 			player:SetCard(0, secondaryCard)
 			player:GetData()['reverseCardRoom'] = nil
 		end
-		
+		if player:HasCollectible(Collectibles.REDKING) and room:GetType() == RoomType.ROOM_BOSS and room:IsClear() and CustomData and CustomData.Items.REDKING.Data then 
+			local redtrapdoor = Isaac.Spawn(6, 969, 0, Vector(160, 288), Vector.Zero, nil)
+			redtrapdoor:GetSprite():Play("Open Animation")
+			CustomData.Items.REDKING.Data = false
+		end 
 		if player:HasCollectible(Collectibles.MAGICPEN) then
 			-- taste the rainbow
 			for _, entity in pairs(Isaac.GetRoomEntities()) do
@@ -2663,6 +2699,10 @@ function rplus:OnNPCDeath(NPC)
 			player:AddCacheFlags(CacheFlag.CACHE_SPEED)
 			player:EvaluateItems()
 		end
+		if player:GetData()['RedKingItem'] and NPC:IsBoss() then 
+			Isaac.Spawn(5, 100, GetUnlockedVanillaCollectible(true), NPC.Position, Vector.Zero, nil)
+			player:GetData()['RedKingItem'] = false 
+		end
 	end
 end
 rplus:AddCallback(ModCallbacks.MC_POST_NPC_DEATH, rplus.OnNPCDeath)
@@ -3380,7 +3420,11 @@ function rplus:playerCollision(Player, Collider, _)
 			end
 		end
 	end
-	
+	if Collider.Type == 6 and Collider.Variant == 969 then
+		Isaac.ExecuteCommand("goto s.isaacs.0") -- teleports player to an empty room
+		Player:GetData()['SpawnBoss']=true
+		Collider:Remove()
+	end
 	if Player:HasCollectible(Collectibles.CEILINGSTARS) and Collider.Type == 5 and Collider.Variant == 380 and not CustomData.Items.CEILINGSTARS.SleptInBed then
 		CustomData.Items.CEILINGSTARS.SleptInBed = true
 		for i = 1, 2 do
