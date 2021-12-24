@@ -207,11 +207,14 @@ PickUps = {
 	-- tainted hearts
 	TaintedHearts = {
 		HEART_BROKEN  = 84,
+		HEART_DAUNTLESS = 85,
 		HEART_HOARDED  = 86,
+		HEART_SOILED = 88,
 		HEART_BENIGHTED  = 91,
 		HEART_ENIGMA  = 92,
 		HEART_CAPRICIOUS  = 93,
 		HEART_FETTERED  = 98,
+		HEART_ZEALOT = 99,
 		HEART_DESERTED  = 100
 	},
 	SLOT_STARGAZER = Isaac.GetEntityVariantByName("Stargazer")
@@ -808,6 +811,14 @@ local function isSelfDamage(damageFlags, data)
 			selfDamageFlags['SacrificeRoom'],
 			selfDamageFlags['MausoleumDoor']
 		}
+	elseif data == "taintedhearts" then 
+		selfDamageFlags = {
+			selfDamageFlags['IVBag'],
+			selfDamageFlags['Confessional'],
+			selfDamageFlags['DemonBeggar'],
+			selfDamageFlags['BloodDonationMachine'],
+			selfDamageFlags['HellGame']
+		}
 	end
 	
 	for source, flags in pairs(selfDamageFlags) do
@@ -1162,6 +1173,11 @@ function rplus:OnGameStart(Continued)
 				YUCK = {UseFrame = -900},
 				YUM = {NumLuck = 0, NumDamage = 0, NumRange = 0, NumTears = 0, UseFrame = -900},
 				PHANTOM = {UseFrame = -900}
+			},
+			Hearts = {
+				ZEALOT = 0,
+				SOILED = 0,
+				DAUNTLESS = 0 
 			}
 		}
 		
@@ -1188,6 +1204,7 @@ function rplus:PreGameExit(ShouldSave)
 	if ShouldSave then
 		Isaac.SaveModData(rplus, json.encode(CustomData, "CustomData"))
 	end
+	CustomData.Hearts.ZEALOT = 0 -- if player has zealot hearts before restarting or dying the game they will get wisps, so I removed all hearts before the game exists 
 end
 rplus:AddCallback(ModCallbacks.MC_PRE_GAME_EXIT, rplus.PreGameExit)
 
@@ -1213,7 +1230,12 @@ function rplus:OnNewLevel()
 		
 		if CustomData then
 			CustomData.Cards.JACK = nil
-			
+			for i = 1, CustomData.Hearts.ZEALOT-math.floor(CustomData.Hearts.ZEALOT/2) do
+				repeat 
+					newID = GetUnlockedVanillaCollectible()
+				until Isaac.GetItemConfig():GetCollectible(newID).Type % 3 == 1
+				player:AddItemWisp(newID, player.Position, true)
+			end
 			if player:GetData()['usedDemonForm'] then
 				CustomData.Cards.DEMONFORM.NumUses = 0
 				player:GetData()['usedDemonForm'] = false
@@ -2792,7 +2814,90 @@ function rplus:OnGameRender()
 	
 	for i = 0, game:GetNumPlayers() - 1 do
 		local player = Isaac.GetPlayer(i)
-		
+			--render zealot hearts
+		if (CustomData.Hearts.ZEALOT > 0 and Game():GetLevel():GetCurses () ~= LevelCurse.CURSE_OF_THE_UNKNOWN ) then
+          	local zealotfull = CustomData.Hearts.ZEALOT / 2
+          	local ishalf = (CustomData.Hearts.ZEALOT % 2 == 1)
+          	local hearts = ((player:GetMaxHearts() + player:GetSoulHearts()) /2 ) + player:GetBoneHearts() + player:GetBrokenHearts()
+          	local TopVector = Vector(0,0)
+          	local HeartRenderOffset = Options.HUDOffset * Vector(20, 12)
+          	
+          	ZealotSprite = Sprite()
+			ZealotSprite:Load("gfx/ui/ui_taintedhearts.anm2", true)
+          	if (ishalf) then zealotfull = zealotfull + 1 end
+          	for i=hearts+1, (hearts+zealotfull) do
+            	if (i < 7) then
+              		TopVector = Vector((i-1)*12 + 48, 12)
+            	elseif (i < 13) then
+              		TopVector = Vector((i-7)*12 + 48, 22)
+            	else
+             		TopVector = Vector((i-13)*12 + 48, 32)
+            	end
+            	if (not ishalf or i < hearts+zealotfull-1) then
+              		ZealotSprite:SetFrame("ZealotFull", 0)
+            	else
+              		ZealotSprite:SetFrame("ZealotHalf", 0)
+            	end
+            	ZealotSprite:Render(TopVector+Vector(1, 1)+HeartRenderOffset, Vector.Zero, Vector.Zero)
+         	end
+        end 
+        --render soiled hearts
+        if (CustomData.Hearts.SOILED > 0 and Game():GetLevel():GetCurses () ~= LevelCurse.CURSE_OF_THE_UNKNOWN ) then
+          	local soiledfull = CustomData.Hearts.SOILED / 2
+          	local ishalf = (CustomData.Hearts.SOILED % 2 == 1)
+          	local hearts = ((player:GetMaxHearts() + player:GetSoulHearts()) /2 ) + player:GetBoneHearts() + player:GetBrokenHearts() + (CustomData.Hearts.ZEALOT / 2)
+          	local TopVector = Vector(0,0)
+          	local HeartRenderOffset = Options.HUDOffset * Vector(20, 12)
+          	SoiledSprite = Sprite()
+			SoiledSprite:Load("gfx/ui/ui_taintedhearts.anm2", true)
+          	if (ishalf) then soiledfull = soiledfull + 1 end
+          	for i=hearts+1, (hearts+soiledfull) do
+            	if (i < 7) then
+              		TopVector = Vector((i-1)*12 + 48, 12)
+            	elseif (i < 13) then
+              		TopVector = Vector((i-7)*12 + 48, 22)
+            	else
+             		TopVector = Vector((i-13)*12 + 48, 32)
+            	end
+            	if (not ishalf or i < hearts+soiledfull-1) then
+              		SoiledSprite:SetFrame("SoiledFull", 0)
+            	else
+              		SoiledSprite:SetFrame("SoiledHalf", 0)
+            	end
+            	SoiledSprite:Render(TopVector+Vector(1, 1)+HeartRenderOffset, Vector.Zero, Vector.Zero)
+         	end
+        end 
+        --render dauntless heart
+        if (CustomData.Hearts.DAUNTLESS > 0 and Game():GetLevel():GetCurses () ~= LevelCurse.CURSE_OF_THE_UNKNOWN ) then
+          	local dauntlessfull = CustomData.Hearts.DAUNTLESS / 3
+          	local isthird = (CustomData.Hearts.DAUNTLESS % 3 == 1)
+          	local isthirds = (CustomData.Hearts.DAUNTLESS % 3 == 2)
+          	local hearts = ((player:GetMaxHearts() + player:GetSoulHearts()) / 2 ) + player:GetBoneHearts() + player:GetBrokenHearts() + (CustomData.Hearts.ZEALOT / 2) + (CustomData.Hearts.SOILED / 2)
+          	local TopVector = Vector(0,0)
+          	local HeartRenderOffset = Options.HUDOffset * Vector(20, 12)
+          	
+          	DauntlessSprite = Sprite()
+			DauntlessSprite:Load("gfx/ui/ui_taintedhearts.anm2", true)
+			if isthird then dauntlessfull = dauntlessfull + 1 end
+          	if isthirds then dauntlessfull = dauntlessfull + 1 end
+          	for i=hearts+1, (hearts+dauntlessfull) do
+            	if (i < 7) then
+              		TopVector = Vector((i-1)*12 + 48, 12)
+            	elseif (i < 13) then
+              		TopVector = Vector((i-7)*12 + 48, 22)
+            	else
+             		TopVector = Vector((i-13)*12 + 48, 32)
+            	end
+            	if CustomData.Hearts.DAUNTLESS % 3 == 0 or i < hearts+dauntlessfull-1 then
+              		DauntlessSprite:SetFrame("DauntlessFull", 0) 
+            	elseif isthirds or i < hearts+dauntlessfull - 2  then 
+              		DauntlessSprite:SetFrame("DauntlessTwoThirds", 0)
+              	else 
+              		DauntlessSprite:SetFrame("DauntlessThird", 0)
+            	end
+            	DauntlessSprite:Render(TopVector+Vector(1, 1)+HeartRenderOffset, Vector.Zero, Vector.Zero)
+         	end
+        end 
 		if player:HasTrinket(Trinkets.GREEDSHEART) and not isInGhostForm(player) then
 			CoinHeartSprite = Sprite()
 			
@@ -2939,6 +3044,67 @@ function rplus:EntityTakeDmg(Entity, Amount, Flags, Source, CDFrames)
 		if player:HasTrinket(Trinkets.JUDASKISS) and Entity.Type == 1 
 		and Soruce.Entity and Source.Entity:IsActiveEnemy(false) then
 			Source.Entity:AddEntityFlags(EntityFlag.FLAG_BAITED)
+		end
+		-- take damage with custom hearts
+		if CustomData.Hearts.ZEALOT > 0 and not isInGhostForm(Player) and CustomData.Hearts.SOILED==0 and CustomData.Hearts.DAUNTLESS==0 then
+			if not isSelfDamage(Flags, "taintedhearts") then
+				CustomData.Hearts.ZEALOT = CustomData.Hearts.ZEALOT - Amount
+				if CustomData.Hearts.ZEALOT < 0 then 
+					CustomData.Hearts.ZEALOT = 0
+				end
+				Player:TakeDamage(1, DamageFlag.DAMAGE_FAKE, EntityRef(Entity), 24)
+				return false
+			elseif isSelfDamage(Flags, "taintedhearts") and Player:GetHearts() == 0 then 
+				CustomData.Hearts.ZEALOT = CustomData.Hearts.ZEALOT - Amount
+				if CustomData.Hearts.ZEALOT < 0 then 
+					CustomData.Hearts.ZEALOT = 0
+				end
+				Player:TakeDamage(1, DamageFlag.DAMAGE_FAKE, EntityRef(Entity), 24)
+				return false
+			else 
+				return true
+			end
+		end
+
+
+		if CustomData.Hearts.SOILED > 0 and not isInGhostForm(Player) and CustomData.Hearts.DAUNTLESS==0 then
+			if not isSelfDamage(Flags, "taintedhearts") then
+				CustomData.Hearts.SOILED = CustomData.Hearts.SOILED - Amount
+				if CustomData.Hearts.SOILED < 0 then 
+					CustomData.Hearts.SOILED = 0
+				end
+				Player:TakeDamage(1, DamageFlag.DAMAGE_FAKE, EntityRef(Entity), 24)
+				return false
+			elseif isSelfDamage(Flags, "taintedhearts") and Player:GetHearts() == 0 then 
+				CustomData.Hearts.SOILED = CustomData.Hearts.SOILED - Amount
+				if CustomData.Hearts.SOILED < 0 then 
+					CustomData.Hearts.SOILED = 0
+				end
+				Player:TakeDamage(1, DamageFlag.DAMAGE_FAKE, EntityRef(Entity), 24)
+				return false
+			else 
+				return true
+			end
+		end
+
+		if CustomData.Hearts.DAUNTLESS > 0 and not isInGhostForm(Player) then
+			if not isSelfDamage(Flags, "taintedhearts") then
+				CustomData.Hearts.DAUNTLESS = CustomData.Hearts.DAUNTLESS - Amount
+				if CustomData.Hearts.DAUNTLESS < 0 then 
+					CustomData.Hearts.DAUNTLESS = 0
+				end
+				Player:TakeDamage(1, DamageFlag.DAMAGE_FAKE, EntityRef(Entity), 24)
+				return false
+			elseif isSelfDamage(Flags, "taintedhearts") and Player:GetHearts() == 0 then 
+				CustomData.Hearts.DAUNTLESS = CustomData.Hearts.DAUNTLESS - Amount
+				if CustomData.Hearts.DAUNTLESS < 0 then 
+					CustomData.Hearts.DAUNTLESS = 0
+				end
+				Player:TakeDamage(1, DamageFlag.DAMAGE_FAKE, EntityRef(Entity), 24)
+				return false
+			else 
+				return true
+			end
 		end
 		
 		if player:HasCollectible(Collectibles.BLACKDOLL) and ABSepNumber then
@@ -3160,7 +3326,9 @@ function rplus:OnPickupInit(Pickup)
 					elseif roll < 2 then Pickup:Morph(5, 10, PickUps.TaintedHearts.HEART_ENIGMA, true, true, false) end
 				elseif st == HeartSubType.HEART_SOUL then
 					-- 15% fettered heart
-					if roll < 15 and stage > 1 then Pickup:Morph(5, 10, PickUps.TaintedHearts.HEART_FETTERED, true, true, false) end
+					if roll < 15 and stage > 1 then Pickup:Morph(5, 10, PickUps.TaintedHearts.HEART_FETTERED, true, true, false) 
+					elseif roll < 30 then Pickup:Morph(5, 10, PickUps.TaintedHearts.HEART_ZEALOT, true, true, false) 
+					elseif roll < 45 then Pickup:Morph(5, 10, PickUps.TaintedHearts.HEART_DAUNTLESS, true, true, false) end
 				elseif st == HeartSubType.HEART_ETERNAL then
 					
 				elseif st == HeartSubType.HEART_DOUBLEPACK then
@@ -3183,7 +3351,7 @@ function rplus:OnPickupInit(Pickup)
 				elseif st == HeartSubType.HEART_BONE then
 				
 				elseif st == HeartSubType.HEART_ROTTEN then
-				
+					elseif roll < 15 then Pickup:Morph(5, 10, PickUps.TaintedHearts.HEART_SOILED, true, true, false) 
 				end
 				
 				-- 2% capricious heart
@@ -3204,6 +3372,10 @@ rplus:AddCallback(ModCallbacks.MC_POST_PICKUP_INIT, rplus.OnPickupInit)
 function rplus:PickupCollision(Pickup, Collider, _)	
 	if not Collider:ToPlayer() then return end
 	local player = Collider:ToPlayer()
+	local totalhealth = player:GetMaxHearts() + player:GetSoulHearts() + (player:GetBoneHearts() * 2) + (player:GetBrokenHearts()*2)+CustomData.Hearts.ZEALOT+CustomData.Hearts.SOILED+math.floor(CustomData.Hearts.DAUNTLESS*2/3)
+	if player:GetPlayerType() == 1 and player:HasCollectible(CollectibleType.BIRTHRIGHT) then --birthright for maggy gives you ability to have 18 hearts instead of 12
+		maxhealth = 36
+	else maxhealth = 24 end
 	
 	if Pickup.Variant == PickUps.FLESHCHEST and Pickup.SubType == 0 then
 		-- subtype 1: opened chest (need to remove)
@@ -3293,7 +3465,11 @@ function rplus:PickupCollision(Pickup, Collider, _)
 			end
 		end
 	end
-	
+	if Pickup.Variant == 10 and (Pickup.SubType == 3 or Pickup.SubType == 6) then --can't pick up blue or black hearts with 12 hearts(including custom hearts)
+		if totalhealth>maxhealth-1 then 
+			return false
+		end
+	end
 	if Pickup.Variant == 10 and player:CanPickRedHearts()  
 	and (Pickup.SubType == 1 or Pickup.SubType == 2 or Pickup.SubType == 5 or Pickup.SubType == 12) then
 		if ((game:GetFrameCount() - CustomData.Pills.YUCK.UseFrame) <= 900 and player:GetData()['usedYuck'])
@@ -3341,7 +3517,67 @@ function rplus:PickupCollision(Pickup, Collider, _)
 			player:AddBrokenHearts(1)
 			sfx:Play(SoundEffect.SOUND_BOSS2_BUBBLES, 1, 2, false, 1, 0)
 		end
-		
+		if player:GetPlayerType() ~= 10 and player:GetPlayerType() ~= 31 then -- the lost can't get hearts that change ui
+			if Pickup.SubType == PickUps.TaintedHearts.HEART_ZEALOT then			
+				if totalhealth<maxhealth then 
+					if totalhealth % 2 == 0 or CustomData.Hearts.ZEALOT % 2 == 1 or CustomData.Hearts.SOILED % 2 == 1 then 
+            			CustomData.Hearts.ZEALOT = CustomData.Hearts.ZEALOT + 2
+            		elseif totalhealth == maxhealth - 1 and player:GetMaxHearts()~=maxhealth-2 then 
+            			player:AddSoulHearts(-1)
+            			CustomData.Hearts.ZEALOT = CustomData.Hearts.ZEALOT + 2
+            		elseif player:GetSoulHearts() % 2 == 1 or player:GetBlackHearts() % 2 == 1 then 
+                		player:AddSoulHearts(1)
+               	 		CustomData.Hearts.ZEALOT = CustomData.Hearts.ZEALOT + 1
+               		end
+            	elseif totalhealth == maxhealth and player:GetSoulHearts()>0 and player:GetMaxHearts()~=maxhealth then 
+            		player:AddSoulHearts(-2)
+            		CustomData.Hearts.ZEALOT = CustomData.Hearts.ZEALOT + 2
+        		else return false end
+			end
+
+			if Pickup.SubType == PickUps.TaintedHearts.HEART_SOILED then			
+				if totalhealth<maxhealth then 
+					if totalhealth % 2 == 0 or CustomData.Hearts.SOILED % 2 == 1 then 
+            			CustomData.Hearts.SOILED = CustomData.Hearts.SOILED + 2
+            		elseif totalhealth == maxhealth - 1 and player:GetMaxHearts()~=maxhealth-2 then 
+            			player:AddSoulHearts(-1)
+            			CustomData.Hearts.SOILED = CustomData.Hearts.SOILED + 2
+            		elseif player:GetSoulHearts() % 2 == 1 or player:GetBlackHearts() % 2 == 1 then 
+                		player:AddSoulHearts(1)
+               	 		CustomData.Hearts.SOILED = CustomData.Hearts.SOILED + 1
+               		elseif CustomData.Hearts.ZEALOT % 2 == 1 then 
+               			CustomData.Hearts.SOILED = CustomData.Hearts.SOILED + 1
+               			CustomData.Hearts.ZEALOT = CustomData.Hearts.ZEALOT + 1
+               		end
+            	elseif totalhealth == maxhealth and player:GetSoulHearts()>0 and player:GetMaxHearts()~=maxhealth then 
+            		player:AddSoulHearts(-2)
+            		CustomData.Hearts.SOILED = CustomData.Hearts.SOILED + 2
+        		else return false end
+			end
+
+			if Pickup.SubType == PickUps.TaintedHearts.HEART_DAUNTLESS then
+				if totalhealth<maxhealth then 
+					if totalhealth % 2 == 0 or CustomData.Hearts.DAUNTLESS % 3 == 1 then 
+            			CustomData.Hearts.DAUNTLESS = CustomData.Hearts.DAUNTLESS + 3
+            		elseif totalhealth == maxhealth - 1 then 
+            			player:AddSoulHearts(-1)
+            			CustomData.Hearts.DAUNTLESS = CustomData.Hearts.DAUNTLESS + 3
+            		elseif player:GetSoulHearts() % 2 == 1 or player:GetBlackHearts() % 2 == 1 then 
+                		player:AddSoulHearts(1)
+               	 		CustomData.Hearts.DAUNTLESS = CustomData.Hearts.DAUNTLESS + 2
+               		elseif CustomData.Hearts.ZEALOT % 2 == 1 then 
+               			CustomData.Hearts.DAUNTLESS = CustomData.Hearts.DAUNTLESS + 2
+               			CustomData.Hearts.ZEALOT = CustomData.Hearts.ZEALOT + 1
+               		elseif CustomData.Hearts.SOILED % 2 == 1 then 
+               			CustomData.Hearts.DAUNTLESS = CustomData.Hearts.DAUNTLESS + 2
+               			CustomData.Hearts.SOILED = CustomData.Hearts.SOILED + 1
+               		end
+            	elseif totalhealth == maxhealth and player:GetSoulHearts()>0 and player:GetMaxHearts()~=maxhealth then 
+            		player:AddSoulHearts(-2)
+            		CustomData.Hearts.DAUNTLESS = CustomData.Hearts.DAUNTLESS + 3
+        		else return false end
+			end
+		end
 		if Pickup.SubType == PickUps.TaintedHearts.HEART_HOARDED then
 			if player:CanPickRedHearts() then
 				player:AddHearts(8)
@@ -4113,7 +4349,9 @@ function rplus:PickupAwardSpawn(_, Pos)
 	
 	for i = 0, game:GetNumPlayers() - 1 do
 		local player = Isaac.GetPlayer(i)
-		
+		for i = 1, CustomData.Hearts.SOILED do
+			Isaac.Spawn(3, 201, -1, player.Position, Vector.FromAngle(math.random(360)) * 3, nil) --spawn dips for every half of soiled heart
+		end
 		if player:HasCollectible(Collectibles.REDKING) then
 			if room:GetType() == RoomType.ROOM_BOSS 
 			and level:GetStage() < 9 then
@@ -4249,7 +4487,7 @@ if EID then
 	EID:addCard(PocketItems.REDRUNE, "Damages all enemies in a room, turns item pedestals into red locusts and turns pickups into random locusts with a 50% chance")
 	EID:addCard(PocketItems.NEEDLEANDTHREAD, "Removes one broken heart and grants one {{Heart}} heart container")
 	EID:addCard(PocketItems.QUEENOFDIAMONDS, "Spawns  1-12 random {{Coin}} coins (those can be nickels or dimes as well)")
-	EID:addCard(PocketItems.KINGOFSPADES, "Lose all your keys and spawn a number of pickups proportional to the amount of keys lost #At least 12 {{Key}} keys is needed for a trinket, and at least 28 for an item #If Isaac has {{GoldenKey}} Golden key, it is removed too and significantly increases total value")
+	EID:addCard(PocketItems.KINGOFSPADES, "Lose all your keys and spawn a number of pickups proportional to the of keys lost #At least 12 {{Key}} keys is needed for a trinket, and at least 28 for an item #If Isaac has {{GoldenKey}} Golden key, it is removed too and significantly increases total value")
 	EID:addCard(PocketItems.KINGOFCLUBS, "Lose all your bombs and spawn a number of pickups proportional to the amount of bombs lost #At least 12 {{Bomb}} bombs is needed for a trinket, and at least 28 for an item #If Isaac has {{GoldenBomb}} Golden bomb, it is removed too and significantly increases total value")
 	EID:addCard(PocketItems.KINGOFDIAMONDS, "Lose all your coins and spawn a number of pickups proportional to the amount of coins lost #At least 15 {{Coin}} coins is needed for a trinket, and at least 35 for an item")
 	EID:addCard(PocketItems.BAGTISSUE, "All pickups in a room are destroyed, and 8 most valuables pickups form an item quality based on their total weight; the item of such quality is then spawned #The most valuable pickups are the rarest ones, e.g. {{EthernalHeart}} Eternal hearts or {{Battery}} Mega batteries #{{Warning}} If used in a room with less then 8 pickups, no item will spawn!")
