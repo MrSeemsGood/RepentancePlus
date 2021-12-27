@@ -2792,7 +2792,15 @@ function rplus:OnGameRender()
 	
 	for i = 0, game:GetNumPlayers() - 1 do
 		local player = Isaac.GetPlayer(i)
-		
+		if player:HasCollectible(Collectibles.CEREMDAGGER) and player:HasCollectible(114) then 
+			for _, entity in pairs(Isaac.GetRoomEntities())	do
+				if entity.Type == 8 and entity.Variant == 0 then
+					sprite = entity:GetSprite()
+					sprite:ReplaceSpritesheet(0, "gfx/ceremonial_knife.png")
+					sprite:LoadGraphics()
+				end 
+			end 
+		end 
 		if player:HasTrinket(Trinkets.GREEDSHEART) and not isInGhostForm(player) then
 			CoinHeartSprite = Sprite()
 			
@@ -3040,6 +3048,10 @@ function rplus:EntityTakeDmg(Entity, Amount, Flags, Source, CDFrames)
 					break
 				end
 			end
+		end
+		if Source and Source.Type == 8 and player:HasCollectible(Collectibles.CEREMDAGGER) and math.random(100) <= CEREM_DAGGER_LAUNCH_CHANCE then -- knife synergy
+				Entity:AddEntityFlags(EntityFlag.FLAG_BLEED_OUT)	
+				sfx:Play(SoundEffect.SOUND_KNIFE_PULL, 1, 2, false, 1, 0)
 		end
 	end
 end
