@@ -232,6 +232,7 @@ CustomPickups = {
 		HEART_BENIGHTED  = 91,
 		HEART_ENIGMA  = 92,
 		HEART_CAPRICIOUS  = 93,
+		HEART_EMPTY = 97,
 		HEART_FETTERED  = 98,
 		HEART_ZEALOT = 99,
 		HEART_DESERTED  = 100
@@ -1190,6 +1191,53 @@ local function isCollidingWithAstralChain(entity)
 		end
 	end
 end
+local function HeartRender(player)
+	local player = game:GetPlayer(0) 
+	local TopVector = Vector(0,0)
+	local level = game:GetLevel()
+	local hearts = 0
+	hearts = math.floor((player:GetMaxHearts() + player:GetSoulHearts()) /2  + player:GetBoneHearts()+0.5) 
+   	if level:GetCurses() & LevelCurse.CURSE_OF_THE_UNKNOWN ~= LevelCurse.CURSE_OF_THE_UNKNOWN then
+  		if CustomData.TaintedHearts.ZEALOT > 0 then
+   			local ZealotSprite = Sprite()
+   			ZealotSprite:Load("gfx/ui/ui_taintedhearts.anm2", true)
+   			ZealotSprite:LoadGraphics()
+   			ZealotSprite:Play("Zealot", true)  		
+   			local HeartRenderOffset = Options.HUDOffset * Vector(20, 12)
+        		for i = hearts+1-CustomData.TaintedHearts.ZEALOT, hearts do
+            			if (i < 7) then
+                			TopVector = Vector((i-1)*12 + 48, 12)
+            			elseif (i < 13) then
+                			TopVector = Vector((i-7)*12 + 48, 22)
+            			else
+            	 	   		TopVector = Vector((i-13)*12 + 48, 30)
+            			end
+            			ZealotSprite:Render(TopVector+Vector(1, 1)+HeartRenderOffset, Vector.Zero, Vector.Zero)
+            			ZealotSprite:Update()
+        		end
+    		end
+
+    		if CustomData.TaintedHearts.EMPTY > 0 then
+   			local EmptySprite = Sprite()
+   			EmptySprite:Load("gfx/ui/ui_taintedhearts.anm2", true)
+   			EmptySprite:LoadGraphics()
+   			EmptySprite:Play("Empty")
+   			local hearts = math.floor((player:GetMaxHearts() + player:GetSoulHearts()) /2  + player:GetBoneHearts()+0.5) 
+   			local HeartRenderOffset = Options.HUDOffset * Vector(20, 12)
+        		for i = hearts+1-CustomData.TaintedHearts.EMPTY, hearts do
+            			if (i < 7) then
+               				TopVector = Vector((i-1)*12 + 48, 12)
+            			elseif (i < 13) then
+         	    			TopVector = Vector((i-7)*12 + 48, 22)
+            			else
+                			TopVector = Vector((i-13)*12 + 48, 30)
+            			end
+            			EmptySprite:Render(TopVector+Vector(1, 1)+HeartRenderOffset, Vector.Zero, Vector.Zero)
+            			EmptySprite:Update()
+        		end
+    		end
+	end
+end
 
 						-----------------------------
 						-- CALLBACK TIED FUNCTIONS --
@@ -1261,9 +1309,8 @@ function rplus:OnGameStart(Continued)
 			NumTaintedRocks = 0,
 			FleshChestConsumedHP = 0,
 			TaintedHearts = {
-				ZEALOT = 0,
-				SOILED = 0,
-				DAUNTLESS = 0 
+				EMPTY = 0,
+				ZEALOT = 0
 			}
 		}
 		
@@ -1340,6 +1387,18 @@ end
 rplus:AddCallback(ModCallbacks.MC_POST_GAME_END, rplus.GameEnded)	
 
 
+						-- MC_GET_SHADER_PARAMS --										
+						--------------------------
+function rplus:GetShaderParams(shaderName)
+	local player = game:GetPlayer(0) -- 
+    	if shaderName == 'Hearts' then
+    		HeartRender(player)
+        	return nil
+	end
+end
+rplus:AddCallback(ModCallbacks.MC_GET_SHADER_PARAMS, rplus.GetShaderParams)
+
+
 						-- MC_POST_NEW_LEVEL --										
 						-----------------------
 function rplus:OnNewLevel()
@@ -1366,6 +1425,10 @@ function rplus:OnNewLevel()
 				CustomData.Items.BAG_O_TRASH.Levels = CustomData.Items.BAG_O_TRASH.Levels + 1
 			end
 			
+			for i = 1, CustomData.TaintedHearts.EMPTY do
+				Isaac.Spawn(3, FamiliarVariant.ABYSS_LOCUST, 0, player.Position, Vector.Zero, nil)	
+			end 
+
 			-- for i = 1, CustomData.TaintedHearts.ZEALOT - math.floor(CustomData.TaintedHearts.ZEALOT / 2) do
 				-- repeat 
 					-- newID = GetUnlockedVanillaCollectible()
@@ -3297,6 +3360,21 @@ function rplus:EntityTakeDmg(Entity, Amount, Flags, SourceRef, CooldownFrames)
 			end
 		end
 		
+		if CustomData.TaintedHearts.ZEALOT>0 and Flags & DamageFlag.DAMAGE_FAKE ~= DamageFlag.DAMAGE_FAKE then 
+			for i = 1, 2 do
+					repeat 
+						newID = GetUnlockedVanillaCollectible()
+					until Isaac.GetItemConfig():GetCollectible(newID).Type % 3 == 1
+					Player:AddItemWisp(newID, Player.Position, true)
+			end
+				CustomData.TaintedHearts.ZEALOT = CustomData.TaintedHearts.ZEALOT - 1
+		end
+
+		if CustomData.TaintedHearts.EMPTY>0 and Flags & DamageFlag.DAMAGE_FAKE ~= DamageFlag.DAMAGE_FAKE  then 	
+				CustomData.TaintedHearts.EMPTY = CustomData.TaintedHearts.EMPTY - 1
+		
+		end
+
 		-- -- take damage with custom hearts
 		-- if CustomData.TaintedHearts.ZEALOT > 0 and not isInGhostForm(Player) and CustomData.TaintedHearts.SOILED==0 and CustomData.TaintedHearts.DAUNTLESS==0 then
 			-- if not isSelfDamage(Flags, "taintedhearts") then
@@ -3605,7 +3683,8 @@ function rplus:OnPickupInit(Pickup)
 					-- 25% benighted heart
 					elseif roll < baseChance * 2 then Pickup:Morph(5, 10, CustomPickups.TaintedHearts.HEART_BENIGHTED, true, true, false) end
 				elseif st == HeartSubType.HEART_GOLDEN then
-					
+					local baseChance = 300
+					if roll < baseChance then Pickup:Morph(5, 10, CustomPickups.TaintedHearts.HEART_ZEALOT, true, true, false) end	
 				elseif st == HeartSubType.HEART_HALF_SOUL then
 					
 				elseif st == HeartSubType.HEART_SCARED then
@@ -3618,6 +3697,8 @@ function rplus:OnPickupInit(Pickup)
 				elseif st == HeartSubType.HEART_BONE then
 				
 				elseif st == HeartSubType.HEART_ROTTEN then
+					local baseChance = 300 
+					if roll < baseChance then Pickup:Morph(5, 10, CustomPickups.TaintedHearts.HEART_EMPTY, true, true, false) end
 				
 				end
 				
@@ -3818,12 +3899,25 @@ function rplus:PickupCollision(Pickup, Collider, _)
 			end
 			sfx:Play(SoundEffect.SOUND_EDEN_GLITCH, 1, 2, false, 1, 0)
 		end
-		
+		if Pickup.SubType == CustomPickups.TaintedHearts.HEART_EMPTY and not isInGhostForm(player) then
+			if math.floor((player:GetMaxHearts() + player:GetSoulHearts()) /2  + player:GetBoneHearts()+0.5) > CustomData.TaintedHearts.EMPTY then
+				CustomData.TaintedHearts.EMPTY = CustomData.TaintedHearts.EMPTY + 1
+				sfx:Play(SoundEffect.SOUND_BOSS2_BUBBLES, 1, 2, false, 1, 0)
+			else return false end
+		end
+
 		if Pickup.SubType == CustomPickups.TaintedHearts.HEART_FETTERED then
 			if (player:GetNumKeys() > 0 or player:HasGoldenKey()) and player:CanPickSoulHearts() then
 				player:AddSoulHearts(3)
 				if not player:HasGoldenKey() then player:AddKeys(-1) end
 				sfx:Play(SoundEffect.SOUND_GOLDENKEY, 1, 2, false, 1, 0)
+				sfx:Play(SoundEffect.SOUND_HOLY, 1, 2, false, 1, 0)
+			else return false end
+		end
+		
+		if Pickup.SubType == CustomPickups.TaintedHearts.HEART_ZEALOT and not isInGhostForm(player) then
+			if math.floor((player:GetMaxHearts() + player:GetSoulHearts()) /2  + player:GetBoneHearts()+0.5) > CustomData.TaintedHearts.ZEALOT then
+				CustomData.TaintedHearts.ZEALOT = CustomData.TaintedHearts.ZEALOT + 1
 				sfx:Play(SoundEffect.SOUND_HOLY, 1, 2, false, 1, 0)
 			else return false end
 		end
