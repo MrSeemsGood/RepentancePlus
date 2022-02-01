@@ -1210,8 +1210,12 @@ end
 
 local function getRightMostHeartForRender(player)
 	-- I miserably failed in rendering hearts in separate containers, so they can be stacked on top of each other for now
-	local rm = math.floor((player:GetMaxHearts() + player:GetSoulHearts()) / 2  + player:GetBoneHearts() + 0.5)
-	
+	local rm = 0
+	if player:GetSoulHearts() > 0 then 
+		rm = math.floor((player:GetMaxHearts() + player:GetSoulHearts()) / 2  + player:GetBoneHearts() + 0.5)
+	else 
+		rm = math.floor(player:GetHearts()/2 + 0.5)
+	end
 	return rm
 end
 
@@ -3419,11 +3423,18 @@ function rplus:EntityTakeDmg(Entity, Amount, Flags, SourceRef, CooldownFrames)
 		-- Tainted hearts
 		if Flags & DamageFlag.DAMAGE_FAKE ~= DamageFlag.DAMAGE_FAKE 
 		and not isSelfDamage(Flags, "taintedhearts") then
-			if CustomData.TaintedHearts.ZEALOT > 0 then
-				CustomData.TaintedHearts.ZEALOT = CustomData.TaintedHearts.ZEALOT - 1
-			elseif CustomData.TaintedHearts.EMPTY > 0 then
-				CustomData.TaintedHearts.EMPTY = CustomData.TaintedHearts.EMPTY - 1
-			end
+			local hearts = 0
+			if Player:GetSoulHearts()>0 then 
+				hearts = Player:GetSoulHearts()
+			else hearts = Player:GetHearts() end
+			if Amount == 2 or hearts%2 == 1 then 
+				if CustomData.TaintedHearts.ZEALOT > 0 then
+					CustomData.TaintedHearts.ZEALOT = CustomData.TaintedHearts.ZEALOT - 1
+				end 
+				if CustomData.TaintedHearts.EMPTY > 0 then
+					CustomData.TaintedHearts.EMPTY = CustomData.TaintedHearts.EMPTY - 1
+				end
+			end 
 		end
 		
 	-- damage inflicted to enemies
