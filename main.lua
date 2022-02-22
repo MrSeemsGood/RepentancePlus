@@ -1456,7 +1456,8 @@ function rplus:OnGameStart(Continued)
 				RED_KING = {redCrawlspacesData = {}},
 				BOTTOMLESS_BAG = {UseFrame = 0, TearCount = 0, Data = false},
 				ANGELS_WINGS = {AttackCooldown = nil, NextAttack = 1},
-				MAGIC_MARKER = {CardDrop = false}
+				MAGIC_MARKER = {CardDrop = false},
+				VAULT_OF_HAVOC = {EnemyList = {}, Data = false, SumHP = 0, EnemiesSpawned = false}
 			},
 			Cards = {
 				JACK = nil,
@@ -1865,6 +1866,23 @@ function rplus:OnNewRoom()
 			elseif var == 4384 then
 				placeholder:ToPickup():Morph(5, 300, CustomConsumables.SPIRITUAL_RESERVES, true, true, true)
 			end
+		end
+	end
+		
+	if CustomData then 
+		if CustomData.Items.VAULT_OF_HAVOC.EnemiesSpawned == true then -- if player was teleported out of Vaul of Havoc room
+			CustomData.Items.VAULT_OF_HAVOC.Data = false 
+			CustomData.Items.VAULT_OF_HAVOC.SumHP = 0
+			CustomData.Items.VAULT_OF_HAVOC.EnemiesSpawned = false 
+		end
+		if CustomData.Items.VAULT_OF_HAVOC.Data == true then  -- handle turning placeholders (Flies) from BR into stored enemies
+			for i, placeholder in pairs(Isaac.FindByType(13, 0, 0, false, false)) do
+				enemyids = #CustomData.Items.VAULT_OF_HAVOC.EnemyList - i + 1
+				enemy = Isaac.Spawn(CustomData.Items.VAULT_OF_HAVOC.EnemyList[enemyids].Type, CustomData.Items.VAULT_OF_HAVOC.EnemyList[enemyids].Variant, CustomData.Items.VAULT_OF_HAVOC.EnemyList[enemyids].SubType, placeholder.Position, Vector.Zero, nil)
+				placeholder:Remove()
+				CustomData.Items.VAULT_OF_HAVOC.SumHP = CustomData.Items.VAULT_OF_HAVOC.SumHP + enemy.MaxHitPoints
+			end
+			CustomData.Items.VAULT_OF_HAVOC.EnemiesSpawned = true
 		end
 	end
 	
@@ -2707,6 +2725,19 @@ function rplus:OnItemUse(ItemUsed, _, Player, UseFlags, Slot, _)
 		else																		-- WIP (runes, soulstones, playing cards and objects)
 			return {Discharge = false, Remove = false, ShowAnim = false}
 		end
+	end
+	
+	if ItemUsed == CustomCollectibles.VAULT_OF_HAVOC then  
+		if #CustomData.Items.VAULT_OF_HAVOC.EnemyList >= 10 then 
+			RNGobj:SetSeed(Random() + 1, 1)
+			local roll = RNGobj:RandomInt(5) + 1
+			Isaac.ExecuteCommand("goto s.boss."..roll+55000)
+			CustomData.Items.VAULT_OF_HAVOC.Data = true
+			return {Discharge = true, Remove = false, ShowAnim = true} 
+		else
+			sfx:Play(SoundEffect.SOUND_THUMBS_DOWN, 1, 2, false, 1, 0)
+			return {Discharge = false, Remove = false, ShowAnim = true}
+		end  
 	end
 end
 rplus:AddCallback(ModCallbacks.MC_USE_ITEM, rplus.OnItemUse)
@@ -3840,6 +3871,10 @@ function rplus:OnNPCDeath(NPC)
 		if player:GetTrinketMultiplier(CustomTrinkets.GREEDS_HEART) > 1 and CustomData.Trinkets.GREEDS_HEART == "CoinHeartEmpty" 
 		and math.random(100) <= 15 then
 			Isaac.Spawn(5, 20, 1, NPC.Position, Vector.FromAngle(math.random(360)), player)
+		end
+		
+		if player:HasCollectible(CustomCollectibles.VAULT_OF_HAVOC) and CustomData.Items.VAULT_OF_HAVOC.Data == false and NPC.MaxHitPoints >= 10 and NPC:IsEnemy()and not NPC:IsBoss() then --store enemies 
+			table.insert(CustomData.Items.VAULT_OF_HAVOC.EnemyList, NPC)
 		end
 	end
 end
@@ -5603,6 +5638,22 @@ function rplus:PickupAwardSpawn(_, Pos)
 			end
 		end
 		
+		if CustomData.Items.VAULT_OF_HAVOC.Data == true then -- spawn reward after clearing Vault of Havoc room 
+			if CustomData.Items.VAULT_OF_HAVOC.SumHP < 100+20*level:GetStage() then 
+				Isaac.Spawn(5, 10, HeartSubType.HEART_FULL, room:FindFreePickupSpawnPosition(c + Vector(40, 40), 10, true, false), Vector.Zero, nil)
+				Isaac.Spawn(5, 10, HeartSubType.HEART_SOUL, room:FindFreePickupSpawnPosition(c + Vector(40, 40), 10, true, false), Vector.Zero, nil)
+			elseif CustomData.Items.VAULT_OF_HAVOC.SumHP < 130+30*level:GetStage() then
+				Isaac.Spawn(5, PickupVariant.PICKUP_CHEST, 0, room:FindFreePickupSpawnPosition(c + Vector(40, 40), 10, true, false), Vector.Zero, nil)
+				Isaac.Spawn(5, PickupVariant.PICKUP_LOCKEDCHEST, 0, room:FindFreePickupSpawnPosition(c + Vector(40, 40), 10, true, false), Vector.Zero, nil)
+				Isaac.Spawn(5, PickupVariant.PICKUP_REDCHEST, 0, room:FindFreePickupSpawnPosition(c + Vector(40, 40), 10, true, false), Vector.Zero, nil)
+			else
+				Isaac.Spawn(5, 100, -1, room:FindFreePickupSpawnPosition(c + Vector(40, 40), 10, true, false), Vector.Zero, nil)
+			end
+			CustomData.Items.VAULT_OF_HAVOC.Data = false 
+			CustomData.Items.VAULT_OF_HAVOC.SumHP = 0
+			return true
+		end
+
 		if player:GetData()['enhancedSB'] and room:GetType() == RoomType.ROOM_BOSS 
 		and level:GetStage() < 8 and level:GetStage() ~= 6 then
 			if player:HasCollectible(CollectibleType.COLLECTIBLE_THERES_OPTIONS) then
@@ -5693,6 +5744,7 @@ function rplus:PickupAwardSpawn(_, Pos)
 		Isaac.Spawn(5, Variant, SubType, game:GetRoom():FindFreePickupSpawnPosition(Pos, 0, true, false), Vector.Zero, nil)
 		return true
 	end
+	
 end
 rplus:AddCallback(ModCallbacks.MC_PRE_SPAWN_CLEAN_AWARD, rplus.PickupAwardSpawn)
 
