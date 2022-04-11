@@ -1,0 +1,6 @@
+<challenges version="1"> 
+    <challenge name="Throwing Practice" playertype="4" endstage="11" startingitems="106" altpath="true" canshoot="false"/>
+    <challenge name="Judgement" playertype="0" endstage="6" startingitems="314" maxhp="6" redhp="6" altpath="true" canshoot="false"/>
+    <challenge name="Shepard of Souls" playertype="4" startingitems="634" endstage="9" maxhp="2" altpath="false" canshoot="false"/>
+    <challenge name="I'm a Cripple" playertype="31" startingitems="240,314" endstage="9" maxhp="2" secretpath="true" canshoot="true"/>
+</challenges>
