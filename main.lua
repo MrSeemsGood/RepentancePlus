@@ -1771,8 +1771,6 @@ function rplus:OnGameStart(Continued)
 			elseif Isaac.GetChallengeIdByName("Shepard of Souls") == Isaac.GetChallenge() then 
 				player:AddCollectible(CustomCollectibles.ENRAGED_SOUL)
 				player:AddCollectible(CustomCollectibles.SOUL_BOND)
-			elseif Isaac.GetChallengeIdByName("I'm a Cripple") == Isaac.GetChallenge() then
-				player:AddCacheFlags(CacheFlag.CACHE_DAMAGE | CacheFlag.CACHE_FIREDELAY) -- All Cache
 			end
 		end
 	else
