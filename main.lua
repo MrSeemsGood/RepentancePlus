@@ -1757,6 +1757,24 @@ function rplus:OnGameStart(Continued)
 		Isaac.ExecuteCommand("debug 0")
 		
 		--]]
+		for i = 0, game:GetNumPlayers() - 1 do
+			local player = Isaac.GetPlayer(i)
+			if Isaac.GetChallengeIdByName("Throwing Practice") == Isaac.GetChallenge() then 
+				player:AddCollectible(CustomCollectibles.RED_BOMBER)
+				player:AddBombs(99)
+			elseif Isaac.GetChallengeIdByName("Judgement") == Isaac.GetChallenge() then 
+				player:AddCollectible(CustomCollectibles.BOOK_OF_JUDGES)
+				player:AddCollectible(CustomCollectibles.CHERUBIM)
+				player:AddCollectible(CollectibleType.COLLECTIBLE_RAW_LIVER)
+				player:AddCollectible(CollectibleType.COLLECTIBLE_RAW_LIVER)
+				player:AddCollectible(CollectibleType.COLLECTIBLE_RAW_LIVER)
+			elseif Isaac.GetChallengeIdByName("Shepard of Souls") == Isaac.GetChallenge() then 
+				player:AddCollectible(CustomCollectibles.ENRAGED_SOUL)
+				player:AddCollectible(CustomCollectibles.SOUL_BOND)
+			elseif Isaac.GetChallengeIdByName("I'm a Cripple") == Isaac.GetChallenge() then
+				player:AddCacheFlags(CacheFlag.CACHE_DAMAGE | CacheFlag.CACHE_FIREDELAY) -- All Cache
+			end
+		end
 	else
 		local customDataLoaded = Isaac.LoadModData(rplus)
 		CustomData = json.decode(customDataLoaded)
