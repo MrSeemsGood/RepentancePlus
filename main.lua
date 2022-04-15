@@ -4488,7 +4488,7 @@ function rplus:EntityTakeDmg(Entity, Amount, Flags, SourceRef, CooldownFrames)
 		
 		--Challenges
 		if Source and Source.Type == 4 and Isaac.GetChallenge() == Isaac.GetChallengeIdByName("Chucking Time") then
-        dBombs(1)
+        	player:AddBombs(1)
 		end
 	end
 end
