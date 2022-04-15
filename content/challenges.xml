@@ -1,0 +1,8 @@
+<challenges version="1">
+    <challenge name="Shop ON" startingitems="18,349,94" playertype="14" startingitems2="74" endstage="8"/>
+    <challenge name="Judgement" endstage="10" altpath="true" canshoot="false"/>
+    <challenge name="Getting Resourceful" playertype="23" endstage="8" startingitems="619,534,623,74,19,17" roomfilter="4"/>
+    <challenge name="Chucking Time" playertype="0" endstage="6" startingitems="614,65,67" roomfilter="4"/>
+    <challenge name="Suicide Queen" playertype="0" endstage="8" startingitems="561,52" roomfilter="4"/>
+    <challenge name="Herald of Many" playertype="34" endstage="10" startingitems="619"/>
+</challenges>
