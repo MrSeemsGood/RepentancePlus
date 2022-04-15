@@ -1761,6 +1761,31 @@ function rplus:OnGameStart(Continued)
 		local customDataLoaded = Isaac.LoadModData(rplus)
 		CustomData = json.decode(customDataLoaded)
 	end
+	--Challenges
+	for j = 0, game:GetNumPlayers() - 1 do
+		local player = Isaac.GetPlayer(j)
+		local Challenge = Isaac.GetChallenge()
+		if Challenge == Isaac.GetChallengeIdByName("shop on") then
+			player:AddCollectible(CustomCollectibles.KEEPERS_PENNY)
+			player:AddTrinket(CustomTrinkets.SLEIGHT_OF_HAND)
+		elseif Challenge == Isaac.GetChallengeIdByName("Judgement") then
+			player:AddCollectible(CustomCollectibles.CHERUBIM)
+			player:AddCollectible(CustomCollectibles.BOOK_OF_JUDGES)
+		elseif Challenge == Isaac.GetChallengeIdByName("Getting Resourceful") then
+			player:RemoveCollectible(CollectibleType.COLLECTIBLE_BAG_OF_CRAFTING)
+			player:AddCollectible(CollectibleType.COLLECTIBLE_BOOK_OF_SIN)
+			player:UseCard(CustomConsumables.MIRRORED_LANDSCAPE)
+			player:AddCollectible(CollectibleType.COLLECTIBLE_SCHOOLBAG)
+			player:AddCollectible(CollectibleType.COLLECTIBLE_MAGIC_FINGERS)
+			player:AddCollectible(CustomCollectibles.RED_BOMBER)
+		elseif Challenge == Isaac.GetChallengeIdByName("Chucking Time") then
+			player:AddCollectible(CustomCollectibles.RED_BOMBER)
+		elseif Challenge == Isaac.GetChallengeIdByName("Herald of Many") then
+			for i = 1, 5 do
+				Isaac.Spawn(3, 231, 0, player.Position, Vector(0, 0), nil)
+			end
+		end
+	end
 end
 rplus:AddCallback(ModCallbacks.MC_POST_GAME_STARTED, rplus.OnGameStart)
 						
@@ -2729,7 +2754,7 @@ function rplus:OnGameUpdate()
 			end
 			
 			-- Baleful Heart main effect
-			if CustomData.TaintedHearts.BALEFUL > 0 
+			if CustomData.TaintedHearts.BALEFUL > 0
 			and #Isaac.FindInRadius(player.Position, (CustomData.TaintedHearts.BALEFUL + 1) * 50, EntityPartition.ENEMY) > 0 then
 				if not player:GetData().ghostSpawnCountdown or player:GetData().ghostSpawnCountdown <= 0 then
 					local ghost = Isaac.Spawn(1000, 189, 1, player.Position, Vector.Zero, player)
@@ -2817,6 +2842,23 @@ function rplus:OnGameUpdate()
 			chain:Remove()
 			chain.Target:ClearEntityFlags(EntityFlag.FLAG_FREEZE)
 			sfx:Play(SoundEffect.SOUND_ANIMA_BREAK)
+		end
+	end
+	--Challenges
+	for _, item in pairs(Isaac.FindInRadius(Vector(320, 280), 1000, EntityPartition.PICKUP)) do
+		if item.Variant ~= 100 or room:GetType() == RoomType.ROOM_SHOP then return end
+		if Isaac.GetChallenge() == Isaac.GetChallengeIdByName("Shop ON") then 
+			item:ToPickup().ShopItemId = -56
+			for i = 0, game:GetNumPlayers() - 1 do --Look I know that this is litterly just like 5 lines up but I just don't want to
+				local player = Isaac.GetPlayer(i)
+				if item:ToPickup().Price ~= 0 or not item:ToPickup().Price then return end
+					item:ToPickup().Price = math.random(30, 40) 
+				if player:HasCollectible(CollectibleType.COLLECTIBLE_STEAM_SALE) == true then 
+					item:ToPickup().Price = math.floor(item:ToPickup().Price / 2)
+				end
+			end
+		elseif Isaac.GetChallenge() == Isaac.GetChallengeIdByName("Herald of Many") then
+			player:UseActiveItem(CollectibleType.COLLECTIBLE_ABYSS, 259)
 		end
 	end
 end
@@ -4443,6 +4485,11 @@ function rplus:EntityTakeDmg(Entity, Amount, Flags, SourceRef, CooldownFrames)
 		end
 		
 		if Entity:GetData()['catInBoxFrozen'] then return false end
+		
+		--Challenges
+		if Source and Source.Type == 4 and Isaac.GetChallenge() == Isaac.GetChallengeIdByName("Chucking Time") then
+        dBombs(1)
+		end
 	end
 end
 rplus:AddCallback(ModCallbacks.MC_ENTITY_TAKE_DMG, rplus.EntityTakeDmg)
